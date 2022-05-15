@@ -21,9 +21,9 @@ class Cromossomo:
 estatistica = {}
 
 
-def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower, upper):
+def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower, upper, nbits):
     populacao = inicializar_população(tamanho_pop, lower, upper)
-    populacao = calcular_fitness(populacao, func)
+    populacao = calcular_fitness(populacao, func, lower, upper)
     populacao = ordenar(populacao)
     plt.pie([row[2] for row in populacao], labels=['{}, {}'.format(row[0], row[1]) for row in populacao])
     plt.title("População inicial")
@@ -48,9 +48,9 @@ def inicializar_população(tamanho_pop, lower, upper, n_bits=32):
     return populacao
 
 
-def calcular_fitness(populacao, func):
+def calcular_fitness(populacao, func, lower, uppper):
     for item in populacao:
-        item[2] = func(item[0], item[1])  # TODO Refatorar, ao invés de trabalhar com lista, poderia fazer uma classe
+        item[2] = func(bin2real(item[0], lower, upper), bin2real(item[1], lower, upper))  # TODO Refatorar, ao invés de trabalhar com lista, poderia fazer uma classe
     # TODO testei e não precisava retornar, ele já alterou o objeto original
     return populacao
 
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     lower = -32.768
     upper = 32.768
     # func =
-    pop_final = algoritmo_genetico(Ngera, objective, pc, pm, tamPop, lower, upper)
+    pop_final = algoritmo_genetico(Ngera, objective, pc, pm, tamPop, lower, upper, Nbits)
     plt.pie([row[2] for row in pop_final], labels=['{}, {}'.format(row[0], row[1]) for row in pop_final])
     plt.title("População final")
     plt.show()
