@@ -5,7 +5,7 @@ import copy
 
 from numpy.random import randint
 
-from bumpfunction import ackley
+from bumpfunction import ackley, dejong, gold, rastrigin, suums
 
 
 class Cromossomo:
@@ -16,12 +16,13 @@ class Cromossomo:
 
 
 # TODO incluir bounds
-# TODO usar menos precisão decimal?
+# TODO talvez representar o x e o y em uma única cadeia binária
 
 estatistica = {}
 
 
-def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower, upper, nbits):
+def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower, upper,
+                       nbits):
     populacao = inicializar_população(tamanho_pop, lower, upper)
     populacao = calcular_fitness(populacao, func, lower, upper)
     populacao = ordenar(populacao)
@@ -35,7 +36,7 @@ def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_m
         # array_fitness = calcular_fitness(populacao, func)
         populacao += popcross
         populacao = seleciona(populacao, tamanho_pop)  # Escolher um método tipo roleta
-        populacao = calcular_fitness(populacao, func)
+        populacao = calcular_fitness(populacao, func, lower, upper)
     return populacao
 
 
@@ -48,9 +49,10 @@ def inicializar_população(tamanho_pop, lower, upper, n_bits=32):
     return populacao
 
 
-def calcular_fitness(populacao, func, lower, uppper):
+def calcular_fitness(populacao, func, lower, upper):
     for item in populacao:
-        item[2] = func(bin2real(item[0], lower, upper), bin2real(item[1], lower, upper))  # TODO Refatorar, ao invés de trabalhar com lista, poderia fazer uma classe
+        item[2] = func(bin2real(item[0], lower, upper), bin2real(item[1], lower,
+                                                                 upper))  # TODO Refatorar, ao invés de trabalhar com lista, poderia fazer uma classe
     # TODO testei e não precisava retornar, ele já alterou o objeto original
     return populacao
 
@@ -66,14 +68,28 @@ def roleta(populacao):
     return sorteado
 
 
+def cross(individuo1, individuo2):
+    n = len(individuo1)
+    ponto_corte = randint(1,
+                          n)  # Não estou permitindo que um filho seja completamente igual a nenhum dos pais, isto é, não pode dar 0 nem N
+    filho = []
+    for i in range(n):
+        if i < ponto_corte:
+            filho.append(individuo1[i])
+        else:
+            filho.append(individuo2[i])
+    return filho
+
+
 def crossover(populacao, pc, func):
     prox_pop = []
     for pai1 in populacao:
         if random.random() < pc:
             novofilho = copy.deepcopy(pai1)
-            pai2 = roleta(populacao)
-            novofilho[0], novofilho[1] = (pai1[0] + pai2[0]) / 2, (pai1[1] + pai2[1]) / 2
-            novofilho[2] = func(novofilho[0], novofilho[1])  # Calcula fitness
+            pai2 = roleta(populacao)  # TODO alterar de roleta para randômico talvez
+            novofilho[0], novofilho[1] = cross(pai1[0], pai2[0]), cross(pai1[1], pai2[1])
+            novofilho[2] = func(bin2real(novofilho[0], lower, upper),
+                                bin2real(novofilho[1], lower, upper))  # Calcula fitness
             prox_pop.append(novofilho)
         else:
             prox_pop.append(pai1)
@@ -92,9 +108,9 @@ def seleciona(populacao, tamanho_pop):
     while len(nova_pop) < tamanho_pop:
         nova_pop.append(roleta(populacao))
 
-    plt.pie([row[2] for row in populacao], labels=['{}, {}'.format(row[0], row[1]) for row in populacao])
-    plt.title("População intermediária")
-    plt.show()
+    # plt.pie([row[2] for row in populacao], labels=['{}, {}'.format(row[0], row[1]) for row in populacao])
+    # plt.title("População intermediária")
+    # plt.show()
 
     return nova_pop
 
@@ -115,7 +131,7 @@ def contabilizar_roleta(chave):
 
 
 def objective(x, y):
-    return 1 / ackley(x, y)
+    return 1 / func(x, y)
 
 
 def bin2real(xb, xmin, xmax):
@@ -132,16 +148,28 @@ if __name__ == '__main__':
     tamPop = 10
     pc = 0.9  # Probabilidade de Crossover
     pm = 0.1  # Probabilidade de mutação
-    Ngera = 20  # Nro de gerações
+    Ngera = 100  # Nro de gerações
     Nbits = 32  # Número de bits para cada variável
     Nvar = 2  # Nro de variáveis
     gera = 0  # Geração inicial
-    lower = -32.768
-    upper = 32.768
-    # func =
+
+    func = ackley
+    functions = {
+        gold: [-2, 2],
+        suums: [-10, 10],
+        dejong: [-2, 2],
+        ackley: [-32.768, 32.768],
+        rastrigin: [-5,5]
+    }
+
+    lower = functions[func][0]
+    upper = functions[func][1]
+
     pop_final = algoritmo_genetico(Ngera, objective, pc, pm, tamPop, lower, upper, Nbits)
     plt.pie([row[2] for row in pop_final], labels=['{}, {}'.format(row[0], row[1]) for row in pop_final])
     plt.title("População final")
     plt.show()
-    ordenar(pop_final)
-    print(str(pop_final))
+    pop_final_convertida = []
+    for ind in pop_final:
+        pop_final_convertida.append([bin2real(ind[0], lower, upper), bin2real(ind[1], lower, upper), ind[2]])
+    print(str(pop_final_convertida))
