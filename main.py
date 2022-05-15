@@ -1,12 +1,19 @@
 import random
 
 import matplotlib.pyplot as plt
-from numpy import cos
-from numpy import e
-from numpy import exp
-from numpy import pi
-from numpy import sqrt
 import copy
+
+from numpy.random import randint
+
+from bumpfunction import ackley
+
+
+class Cromossomo:
+    def __init__(self, x, y, fitness):
+        self.x = x
+        self.y = y
+        self.fitness = fitness
+
 
 # TODO incluir bounds
 # TODO usar menos precisão decimal?
@@ -32,18 +39,18 @@ def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_m
     return populacao
 
 
-def inicializar_população(tamanho_pop, lower, upper):
+def inicializar_população(tamanho_pop, lower, upper, n_bits=32):
     # Retorna um array de pares x,y
     # Poderia já calcular o fitness aqui, mas por questão de didatica vou calcular depoist
-    populacao=[]
+    populacao = []
     for i in range(tamanho_pop):
-        populacao.append([random.uniform(lower, upper), random.uniform(lower, upper), 0])
+        populacao.append([randint(0, 2, size=n_bits).tolist(), randint(0, 2, size=n_bits).tolist(), 0])
     return populacao
 
 
 def calcular_fitness(populacao, func):
     for item in populacao:
-        item[2] = func(item[0], item[1]) # TODO Refatorar, ao invés de trabalhar com lista, poderia fazer uma classe
+        item[2] = func(item[0], item[1])  # TODO Refatorar, ao invés de trabalhar com lista, poderia fazer uma classe
     # TODO testei e não precisava retornar, ele já alterou o objeto original
     return populacao
 
@@ -52,7 +59,7 @@ def roleta(populacao):
     # TODO melhorar ficou muito tosco hausashu muita conversão de tipo para fazer isso
     # TODO talvez tenha um método que receba apenas o dicionario
     sorteado = random.choices(populacao, [row[2] for row in populacao]).pop()
-    #contabilizar_roleta(sorteado)
+    # contabilizar_roleta(sorteado)
     # plt.pie(list(map(abs, populacao.keys())), list(map(abs, populacao.values())), normalize=True)
     # plt.title("Roleta")
     # plt.show()
@@ -65,7 +72,7 @@ def crossover(populacao, pc, func):
         if random.random() < pc:
             novofilho = copy.deepcopy(pai1)
             pai2 = roleta(populacao)
-            novofilho[0], novofilho[1] = (pai1[0] + pai2[0]) / 2, (pai1[1] + pai2[1])/ 2
+            novofilho[0], novofilho[1] = (pai1[0] + pai2[0]) / 2, (pai1[1] + pai2[1]) / 2
             novofilho[2] = func(novofilho[0], novofilho[1])  # Calcula fitness
             prox_pop.append(novofilho)
         else:
@@ -95,8 +102,8 @@ def seleciona(populacao, tamanho_pop):
 def ordenar(populacao):
     dicionario_ordenado = {}  # Cria um dicionário vazio que será retornado
     fitness_ordenado = sorted(populacao, key=lambda x: x[2], reverse=True)  # Ordena o dicionário pelo x[1],
-                                                                                    # isto é, pelo fitness associado
-                                                                                    # a cada item
+    # isto é, pelo fitness associado
+    # a cada item
     return fitness_ordenado
 
 
@@ -107,13 +114,18 @@ def contabilizar_roleta(chave):
         estatistica[chave] += 1
 
 
-def objective(x,y):
-    return 1 / ackley(x,y)
+def objective(x, y):
+    return 1 / ackley(x, y)
 
 
-def ackley(x, y):
-    return -20.0 * exp(-0.2 * sqrt(0.5 * (x ** 2 + y ** 2))) - exp(0.5 * (cos(2 *
-                                                                              pi * x) + cos(2 * pi * y))) + e + 20
+def bin2real(xb, xmin, xmax):
+    xr = 0
+    N = len(xb)  # Numero de bits
+    xb = xb[::-1]
+    for i in range(0, N):
+        xr += xb[i] * (2 ** i)
+
+    return xmin + xr * (xmax - xmin) / (2 ** N - 1)  # x no intervalo [xmin,xmax]
 
 
 if __name__ == '__main__':

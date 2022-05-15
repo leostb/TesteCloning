@@ -59,9 +59,9 @@ def printgraph(r_min, r_max, density, f):
     ax.view_init(25, 225)
     plt.show()
 
-
-printgraph(-2, 2, 100, gold)
-printgraph(-10, 10, 100, suums)
-printgraph(-2, 2, 100, dejong)
-printgraph(-32.768, 32.768, 32, ackley)
-printgraph(-5, 5, 100, rastrigin)
+if __name__ == '__main__':
+    printgraph(-2, 2, 100, gold)
+    printgraph(-10, 10, 100, suums)
+    printgraph(-2, 2, 100, dejong)
+    printgraph(-32.768, 32.768, 32, ackley)
+    printgraph(-5, 5, 100, rastrigin)
