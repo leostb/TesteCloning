@@ -1,11 +1,12 @@
 import random
 
+import numpy as np
 import matplotlib.pyplot as plt
 import copy
 
 from numpy.random import randint
 
-from bumpfunction import ackley, dejong, gold, rastrigin, suums
+from bumpfunction import ackley, dejong, gold, rastrigin, suums, printgraph
 
 
 class Cromossomo:
@@ -19,6 +20,7 @@ class Cromossomo:
 # TODO talvez representar o x e o y em uma única cadeia binária
 
 estatistica = {}
+RELATORIO_DIR= 'relatorios'
 
 
 def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower, upper,
@@ -29,6 +31,7 @@ def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_m
     plt.pie([row[2] for row in populacao], labels=['{}, {}'.format(row[0], row[1]) for row in populacao])
     plt.title("População inicial")
     plt.show()
+    imprimir_tabela_apenas(pop2real(populacao), "Geração Inicial")
     for i in range(0, numero_epocas):
         print("**** Geracao " + str(i) + "*****")
         popcross = crossover(populacao, probabilidade_cross, func)  # Reprodução
@@ -37,6 +40,7 @@ def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_m
         populacao += popcross
         populacao = seleciona(populacao, tamanho_pop)  # Escolher um método tipo roleta
         populacao = calcular_fitness(populacao, func, lower, upper)
+        imprimir_tabela_apenas(pop2real(populacao), "Geração " + str(i))
     return populacao
 
 
@@ -144,7 +148,52 @@ def bin2real(xb, xmin, xmax):
     return xmin + xr * (xmax - xmin) / (2 ** N - 1)  # x no intervalo [xmin,xmax]
 
 
+def imprimir_tabela_apenas(data, titulo = None):
+    n_rows = len(data)
+    rows = ['Individuo {}'.format(i) for i in range(n_rows)]
+    columns = ('x', 'y', 'Fitness')
+
+    fig, ax = plt.subplots()
+
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+
+    ax.table(cellText=data, colLabels=columns,  loc='center')
+    # fig.tight_layout()
+    ax.set_title(titulo)
+    plt.show()
+
+
+def imprimir_tabelae2d(data):
+    n_rows = len(data)
+    rows = ['Individuo {}'.format(i) for i in range(n_rows)]
+    columns = ('x', 'y', 'Fitness')
+
+    x, y = np.array(data)[:, 0], np.array(data)[:, 1]
+    plt.scatter(x, y)
+
+    # Add a table at the bottom of the axes
+    the_table = plt.table(cellText=data,
+                          rowLabels=rows,
+                          loc='bottom')
+
+    # Adjust layout to make room for the table:
+    plt.subplots_adjust(left=0.2, bottom=0.2)
+
+    plt.ylabel("Y")
+    plt.show()
+
+
+def pop2real(pop):
+    pop_convertida = []
+    for ind in pop:
+        pop_convertida.append([bin2real(ind[0], lower, upper), bin2real(ind[1], lower, upper), ind[2]])
+    return pop_convertida
+
 if __name__ == '__main__':
+    random.seed(2)
+    np.random.seed(1)
     tamPop = 10
     pc = 0.9  # Probabilidade de Crossover
     pm = 0.1  # Probabilidade de mutação
@@ -159,17 +208,17 @@ if __name__ == '__main__':
         suums: [-10, 10],
         dejong: [-2, 2],
         ackley: [-32.768, 32.768],
-        rastrigin: [-5,5]
+        rastrigin: [-5, 5]
     }
 
     lower = functions[func][0]
     upper = functions[func][1]
 
+    printgraph(lower, upper, 100, func)
+
     pop_final = algoritmo_genetico(Ngera, objective, pc, pm, tamPop, lower, upper, Nbits)
     plt.pie([row[2] for row in pop_final], labels=['{}, {}'.format(row[0], row[1]) for row in pop_final])
     plt.title("População final")
     plt.show()
-    pop_final_convertida = []
-    for ind in pop_final:
-        pop_final_convertida.append([bin2real(ind[0], lower, upper), bin2real(ind[1], lower, upper), ind[2]])
-    print(str(pop_final_convertida))
+
+    imprimir_tabela_apenas(pop2real(pop_final))
