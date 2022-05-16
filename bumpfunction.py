@@ -20,7 +20,7 @@ def suums(x, y):
 
 
 def dejong(x, y):
-    return 100 * (x**2 - y**2)**2 + (1 - x**2)**2
+    return 100 * (x ** 2 - y ** 2) ** 2 + (1 - x ** 2) ** 2
 
 
 def ackley(x, y):
@@ -44,6 +44,7 @@ def rastrigin(x, y):
     z = x ** 2 + y ** 2 - 10 * cos(2 * pi * x) - 10 * cos(2 * pi * y) + 10
     return -z
 
+
 def printgraph(r_min, r_max, density, f):
     x = np.linspace(r_min, r_max, density)
     y = np.linspace(r_min, r_max, density)
@@ -58,6 +59,12 @@ def printgraph(r_min, r_max, density, f):
     ax.set_zlabel('z')
     ax.view_init(25, 225)
     plt.show()
+
+    plt.contour(X, Y, Z)
+    plt.show()
+    # plt.scatter(X, Y, Z)
+    # plt.show()
+
 
 if __name__ == '__main__':
     printgraph(-2, 2, 100, gold)
