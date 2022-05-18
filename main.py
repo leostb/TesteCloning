@@ -1,4 +1,6 @@
+import os
 import random
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,7 +32,7 @@ def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_m
     populacao = ordenar(populacao)
     plt.pie([row[2] for row in populacao], labels=['{}, {}'.format(row[0], row[1]) for row in populacao])
     plt.title("População inicial")
-    plt.show()
+    plt.savefig(PATH + "/População inicial")
     imprimir_tabela_apenas(pop2real(populacao), "Geração Inicial")
     for i in range(0, numero_epocas):
         print("**** Geracao " + str(i) + "*****")
@@ -148,7 +150,7 @@ def bin2real(xb, xmin, xmax):
     return xmin + xr * (xmax - xmin) / (2 ** N - 1)  # x no intervalo [xmin,xmax]
 
 
-def imprimir_tabela_apenas(data, titulo = None):
+def imprimir_tabela_apenas(data, titulo=None):
     n_rows = len(data)
     rows = ['Individuo {}'.format(i) for i in range(n_rows)]
     columns = ('x', 'y', 'Fitness')
@@ -162,7 +164,7 @@ def imprimir_tabela_apenas(data, titulo = None):
     ax.table(cellText=data, colLabels=columns,  loc='center')
     # fig.tight_layout()
     ax.set_title(titulo)
-    plt.show()
+    plt.savefig(os.path.join(PATH, titulo))
 
 
 def imprimir_tabelae2d(data):
@@ -182,7 +184,7 @@ def imprimir_tabelae2d(data):
     plt.subplots_adjust(left=0.2, bottom=0.2)
 
     plt.ylabel("Y")
-    plt.show()
+    plt.savefig()
 
 
 def pop2real(pop):
@@ -190,6 +192,7 @@ def pop2real(pop):
     for ind in pop:
         pop_convertida.append([bin2real(ind[0], lower, upper), bin2real(ind[1], lower, upper), ind[2]])
     return pop_convertida
+
 
 if __name__ == '__main__':
     random.seed(2)
@@ -215,10 +218,13 @@ if __name__ == '__main__':
     upper = functions[func][1]
 
     printgraph(lower, upper, 100, func)
+    PATH = os.path.join(RELATORIO_DIR, time.strftime("%Y%m%d-%H%M%S"))
+    os.makedirs(PATH)
 
     pop_final = algoritmo_genetico(Ngera, objective, pc, pm, tamPop, lower, upper, Nbits)
+
     plt.pie([row[2] for row in pop_final], labels=['{}, {}'.format(row[0], row[1]) for row in pop_final])
     plt.title("População final")
-    plt.show()
+    plt.savefig(os.path.join(PATH, "PopulacaoFinal"))  # TODO ver porque o join com o nome do arquivo não rolou
 
     imprimir_tabela_apenas(pop2real(pop_final))
