@@ -22,8 +22,17 @@ class Cromossomo:
 # TODO talvez representar o x e o y em uma única cadeia binária
 
 estatistica = {}
-RELATORIO_DIR= 'relatorios'
+RELATORIO_DIR = 'relatorios'
+PATH = os.path.join(RELATORIO_DIR, time.strftime("%Y%m%d-%H%M%S"))
+os.makedirs(PATH)
 
+functions = {
+    gold: [-2, 2],
+    suums: [-10, 10],
+    dejong: [-2, 2],
+    ackley: [-32.768, 32.768],
+    rastrigin: [-5, 5]
+}
 
 def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower, upper,
                        nbits):
@@ -103,10 +112,19 @@ def crossover(populacao, pc, func):
     return prox_pop
 
 
+def mutacaoindividuo(individuo):
+    for i in range(len(individuo)):
+        if random.random() < pm:
+            if individuo[i] == 1:
+                individuo[i] = 0
+            else:
+                individuo[i] = 1
+
+
 def mutacao(população, pm):
-    # if (np.rand() > pm):
-    #     for filho in população
-    pass
+    for individuo in população:
+        mutacaoindividuo(individuo[0])
+        mutacaoindividuo(individuo[1])
 
 
 def seleciona(populacao, tamanho_pop):
@@ -161,7 +179,7 @@ def imprimir_tabela_apenas(data, titulo=None):
     ax.axis('off')
     ax.axis('tight')
 
-    ax.table(cellText=data, colLabels=columns,  loc='center')
+    ax.table(cellText=data, colLabels=columns, loc='center')
     # fig.tight_layout()
     ax.set_title(titulo)
     plt.savefig(os.path.join(PATH, titulo))
@@ -194,9 +212,27 @@ def pop2real(pop):
     return pop_convertida
 
 
+def imprimir_parametros():
+    parametros = {'seed': seed,
+                  'seednp': seednp,
+                  'tamPop': tamPop,
+                  'pc': pc,  # Probabilidade de Crossover
+                  'pm': pm,  # Probabilidade de mutação
+                  'Ngera': Ngera,  # Nro de gerações
+                  'Nbits': Nbits,  # Número de bits para cada variável
+                  'Nvar': Nvar,  # Nro de variáveis
+                  'gera': gera,  # Geração inicial
+                  'func': func.__name__
+                  }
+    with open(os.path.join(PATH,'parametros.txt'), 'w') as f:
+        for k, v in parametros.items():
+            print(str(k) + " = " + str(v), file=f)
+
 if __name__ == '__main__':
-    random.seed(2)
-    np.random.seed(1)
+    seed = 2
+    seednp = 1
+    random.seed(seed)
+    np.random.seed(seednp)
     tamPop = 10
     pc = 0.9  # Probabilidade de Crossover
     pm = 0.1  # Probabilidade de mutação
@@ -206,20 +242,13 @@ if __name__ == '__main__':
     gera = 0  # Geração inicial
 
     func = ackley
-    functions = {
-        gold: [-2, 2],
-        suums: [-10, 10],
-        dejong: [-2, 2],
-        ackley: [-32.768, 32.768],
-        rastrigin: [-5, 5]
-    }
 
     lower = functions[func][0]
     upper = functions[func][1]
 
+    imprimir_parametros()
+
     printgraph(lower, upper, 100, func)
-    PATH = os.path.join(RELATORIO_DIR, time.strftime("%Y%m%d-%H%M%S"))
-    os.makedirs(PATH)
 
     pop_final = algoritmo_genetico(Ngera, objective, pc, pm, tamPop, lower, upper, Nbits)
 
@@ -228,3 +257,4 @@ if __name__ == '__main__':
     plt.savefig(os.path.join(PATH, "PopulacaoFinal"))  # TODO ver porque o join com o nome do arquivo não rolou
 
     imprimir_tabela_apenas(pop2real(pop_final))
+    imprimir_parametros()
