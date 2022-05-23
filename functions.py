@@ -71,5 +71,5 @@ if __name__ == '__main__':
     printgraph(-10, 10, 100, suums)
     printgraph(-2, 2, 100, dejong)
     printgraph(-32.768, 32.768, 32, ackley)
-    printgraph(-5, 5, 100, bump)
+    printgraph(0, 10, 100, bump)
     printgraph(-5, 5, 100, rastrigin)
