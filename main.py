@@ -72,14 +72,22 @@ def calcular_fitness(populacao, func, lower, upper):
 
 
 def roleta(populacao):
-    # TODO melhorar ficou muito tosco hausashu muita conversão de tipo para fazer isso
-    # TODO talvez tenha um método que receba apenas o dicionario
-    sorteado = random.choices(populacao, [row[2] for row in populacao]).pop()
+    soma = 0
+    intervalos = [0]
+    for individuo in populacao:
+        soma += individuo[2]
+        intervalos.append(soma)
+
+    ponto_sorteado = random.random() * soma
+    for i in range(0, len(intervalos) - 1):
+        if ponto_sorteado >= intervalos[i] and ponto_sorteado < intervalos[i+1]:
+            return populacao[i]
+
     # contabilizar_roleta(sorteado)
     # plt.pie(list(map(abs, populacao.keys())), list(map(abs, populacao.values())), normalize=True)
     # plt.title("Roleta")
     # plt.show()
-    return sorteado
+    # return sorteado
 
 
 def cross(individuo1, individuo2):
@@ -202,7 +210,8 @@ def pop2real(pop):
 
 
 def imprimir_parametros():
-    parametros = {'seed': seed,
+    parametros = {'isSeedOn': isSeedOn,
+                  'seed': seed,
                   'seednp': seednp,
                   'tamPop': tamPop,
                   'pc': pc,  # Probabilidade de Crossover
@@ -220,10 +229,13 @@ def imprimir_parametros():
 
 
 if __name__ == '__main__':
+    isSeedOn = True
     seed = 2
     seednp = 1
-    random.seed(seed)
-    np.random.seed(seednp)
+    if isSeedOn:
+        random.seed(seed)
+        np.random.seed(seednp)
+
     tamPop = 30
     pc = 0.9  # Probabilidade de Crossover
     pm = 0.1  # Probabilidade de mutação
