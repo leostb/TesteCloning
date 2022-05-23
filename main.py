@@ -8,7 +8,7 @@ import copy
 
 from numpy.random import randint
 
-from bumpfunction import ackley, dejong, gold, rastrigin, suums, printgraph
+from functions import ackley, dejong, gold, rastrigin, suums, printgraph, bump
 
 
 class Cromossomo:
@@ -31,27 +31,26 @@ functions = {
     suums: [-10, 10],
     dejong: [-2, 2],
     ackley: [-32.768, 32.768],
+    bump: [0, 10],
     rastrigin: [-5, 5]
 }
+
 
 def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower, upper,
                        nbits):
     populacao = inicializar_população(tamanho_pop, lower, upper)
     populacao = calcular_fitness(populacao, func, lower, upper)
     populacao = ordenar(populacao)
-    plt.pie([row[2] for row in populacao], labels=['{}, {}'.format(row[0], row[1]) for row in populacao])
-    plt.title("População inicial")
-    plt.savefig(PATH + "/População inicial")
-    imprimir_tabela_apenas(pop2real(populacao), "Geração Inicial")
+
     for i in range(0, numero_epocas):
         print("**** Geracao " + str(i) + "*****")
+        imprimir_tabela_apenas(pop2real(populacao), "Geração " + str(i))
         popcross = crossover(populacao, probabilidade_cross, func)  # Reprodução
-        # mutacao(populacao, probabilidade_mutacao)  # TODO vai pegar os pais também, não deveria ter mutação nos pais
+        mutacao(populacao, probabilidade_mutacao)  # TODO vai pegar os pais também, não deveria ter mutação nos pais
         # array_fitness = calcular_fitness(populacao, func)
         populacao += popcross
         populacao = seleciona(populacao, tamanho_pop)  # Escolher um método tipo roleta
         populacao = calcular_fitness(populacao, func, lower, upper)
-        imprimir_tabela_apenas(pop2real(populacao), "Geração " + str(i))
     return populacao
 
 
@@ -115,10 +114,7 @@ def crossover(populacao, pc, func):
 def mutacaoindividuo(individuo):
     for i in range(len(individuo)):
         if random.random() < pm:
-            if individuo[i] == 1:
-                individuo[i] = 0
-            else:
-                individuo[i] = 1
+            individuo[i] = 0 if individuo[i] == 1 else 1
 
 
 def mutacao(população, pm):
@@ -129,7 +125,7 @@ def mutacao(população, pm):
 
 def seleciona(populacao, tamanho_pop):
     nova_pop = []
-    while len(nova_pop) < tamanho_pop:
+    for i in range(tamanho_pop):
         nova_pop.append(roleta(populacao))
 
     # plt.pie([row[2] for row in populacao], labels=['{}, {}'.format(row[0], row[1]) for row in populacao])
@@ -170,19 +166,12 @@ def bin2real(xb, xmin, xmax):
 
 def imprimir_tabela_apenas(data, titulo=None):
     n_rows = len(data)
-    rows = ['Individuo {}'.format(i) for i in range(n_rows)]
-    columns = ('x', 'y', 'Fitness')
-
-    fig, ax = plt.subplots()
-
-    fig.patch.set_visible(False)
-    ax.axis('off')
-    ax.axis('tight')
-
-    ax.table(cellText=data, colLabels=columns, loc='center')
-    # fig.tight_layout()
-    ax.set_title(titulo)
-    plt.savefig(os.path.join(PATH, titulo))
+    header = 'Individuo;x;y;Fitness'
+    with open(os.path.join(PATH, "progressao" + '.csv'), 'a') as f:
+        print(titulo, file=f)
+        print(header, file=f)
+        for i in range(n_rows):
+            print('{};{};{};{}'.format(i, data[i][0], data[i][1], data[i][2]), file=f)
 
 
 def imprimir_tabelae2d(data):
@@ -222,18 +211,20 @@ def imprimir_parametros():
                   'Nbits': Nbits,  # Número de bits para cada variável
                   'Nvar': Nvar,  # Nro de variáveis
                   'gera': gera,  # Geração inicial
-                  'func': func.__name__
+                  'func': func
                   }
-    with open(os.path.join(PATH,'parametros.txt'), 'w') as f:
+    with open(os.path.join(PATH, 'parametros.txt'), 'w') as f:
+        print(input("Comentário:"), file=f)
         for k, v in parametros.items():
             print(str(k) + " = " + str(v), file=f)
+
 
 if __name__ == '__main__':
     seed = 2
     seednp = 1
     random.seed(seed)
     np.random.seed(seednp)
-    tamPop = 10
+    tamPop = 30
     pc = 0.9  # Probabilidade de Crossover
     pm = 0.1  # Probabilidade de mutação
     Ngera = 100  # Nro de gerações
@@ -251,10 +242,3 @@ if __name__ == '__main__':
     printgraph(lower, upper, 100, func)
 
     pop_final = algoritmo_genetico(Ngera, objective, pc, pm, tamPop, lower, upper, Nbits)
-
-    plt.pie([row[2] for row in pop_final], labels=['{}, {}'.format(row[0], row[1]) for row in pop_final])
-    plt.title("População final")
-    plt.savefig(os.path.join(PATH, "PopulacaoFinal"))  # TODO ver porque o join com o nome do arquivo não rolou
-
-    imprimir_tabela_apenas(pop2real(pop_final))
-    imprimir_parametros()
