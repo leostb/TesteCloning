@@ -28,7 +28,6 @@ def ackley(x, y):
                                                                               pi * x) + cos(2 * pi * y))) + e + 20
 
 
-@np.vectorize
 def bump(x, y):
     if x * y < 0.75:
         return float("NaN")
