@@ -161,7 +161,7 @@ def contabilizar_roleta(chave):
     else:
         estatistica[chave] += 1
 
-
+@np.vectorize
 def fitness(x, y):
     objective = func(x, y)
     if np.isnan(objective):
@@ -230,7 +230,7 @@ def imprimir_parametros():
                   'func': func
                   }
     with open(os.path.join(PATH, 'parametros.txt'), 'w') as f:
-        print(input("Comentário:"), file=f)
+        #print(input("Comentário:"), file=f)
         for k, v in parametros.items():
             print(str(k) + " = " + str(v), file=f)
 
@@ -252,8 +252,8 @@ def imprimir_fitness_medio():
 
 
 if __name__ == '__main__':
-    isTemp = True  # Salvar em pasta temporária
-    isSeedOn = False
+    isTemp = False  # Salvar em pasta temporária
+    isSeedOn = True
     seed = 2
     seednp = 1
     if isSeedOn:
@@ -270,20 +270,20 @@ if __name__ == '__main__':
     tamPop = 30
     pc = 0.8  # Probabilidade de Crossover
     pm = 0.01  # Probabilidade de mutação
-    Ngera = 1000  # Nro de gerações
+    Ngera = 500  # Nro de gerações
     Nbits = 32  # Número de bits para cada variável
     Nvar = 2  # Nro de variáveis
     gera = 0  # Geração inicial
 
-    func = bump
+    func = rastrigin
 
     lower = functions[func][0]
     upper = functions[func][1]
 
     imprimir_parametros()
 
-    # printgraph(lower, upper, 100, fitness)
-    # printgraph(lower, upper, 100, func)
+    printgraph(lower, upper, 100, fitness)
+    printgraph(lower, upper, 100, func)
 
     pop_final = algoritmo_genetico(Ngera, fitness, pc, pm, tamPop, lower, upper, Nbits)
     imprimir_fitness_medio()
