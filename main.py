@@ -37,17 +37,24 @@ functions = {
 def algoritmo_genetico(numero_epocas, fitness_func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower,
                        upper,
                        nbits):
-    populacao = inicializar_população(tamanho_pop, lower, upper, nbits)
+    populacao = inicializar_população(tamanho_pop, nbits)
     populacao = calcular_fitness(populacao, fitness_func, lower, upper)
     populacao = ordenar(populacao)
 
     for i in range(0, numero_epocas):
         print("**** Geracao " + str(i) + "*****")
         imprimir_tabela_apenas(pop2real(populacao), "Geração " + str(i))
-        popcross = crossover(populacao, probabilidade_cross, fitness_func)  # Reprodução
-        mutacao(popcross, probabilidade_mutacao)  # TODO vai pegar os pais também, não deveria ter mutação nos pais
+
+        subpop1 = crossover_simples(populacao, probabilidade_cross, fitness_func)  # Reprodução
+        mutacao(subpop1, probabilidade_mutacao)
+
+        subpop2 = crossover_uniforme(populacao, probabilidade_cross, fitness_func)
+        mutacao(subpop2, probabilidade_mutacao)
+
+        subpop3 = inicializar_população(tamanho_pop, nbits)
+
         # array_fitness = calcular_fitness(populacao, func)
-        populacao += popcross
+        populacao += subpop1 + subpop2 + subpop3
         populacao = calcular_fitness(populacao, fitness_func, lower, upper)
         populacao = ordenar(populacao)
         populacao = seleciona(populacao, tamanho_pop)  # Escolher um método tipo roleta
@@ -55,7 +62,7 @@ def algoritmo_genetico(numero_epocas, fitness_func, probabilidade_cross, probabi
     return populacao
 
 
-def inicializar_população(tamanho_pop, lower, upper, n_bits=32):
+def inicializar_população(tamanho_pop, n_bits=32):
     # Retorna um array de pares x,y
     # Poderia já calcular o fitness aqui, mas por questão de didatica vou calcular depoist
     populacao = []
@@ -91,27 +98,27 @@ def roleta(populacao):
     # return sorteado
 
 
-def cross(individuo1, individuo2):
-    n = len(individuo1)
+def cross_simples(pai1, pai2):
+    n = len(pai1)
     ponto_corte = randint(1,
                           n)  # Não estou permitindo que um filho seja completamente igual a nenhum dos pais, isto é, não pode dar 0 nem N
     filho = []
     for i in range(n):
         if i < ponto_corte:
-            filho.append(individuo1[i])
+            filho.append(pai1[i])
         else:
-            filho.append(individuo2[i])
+            filho.append(pai2[i])
     return filho
 
 
-def crossover(populacao, pc, func):
+def crossover_simples(populacao, pc, func):
     prox_pop = []
     for pai1 in populacao:
         if random.random() < pc:
             novofilho = copy.deepcopy(pai1)
             # pai2 = populacao[randint(0, len(populacao))]
             pai2 = roleta(populacao)
-            novofilho[0], novofilho[1] = cross(pai1[0], pai2[0]), cross(pai1[1], pai2[1])
+            novofilho[0], novofilho[1] = cross_simples(pai1[0], pai2[0]), cross_simples(pai1[1], pai2[1])
             novofilho[2] = func(bin2real(novofilho[0], lower, upper),
                                 bin2real(novofilho[1], lower, upper))  # Calcula fitness
             prox_pop.append(novofilho)
@@ -121,7 +128,36 @@ def crossover(populacao, pc, func):
     return prox_pop
 
 
-def mutacaoindividuo(individuo):
+def cross_uniforme(pai1, pai2):
+    n = len(pai1)
+    filho = []
+    mascara = randint(0, 2, n).tolist()
+    for i in range(n):
+        if mascara[i] == 0:
+            filho.append(pai1[i])
+        else:
+            filho.append(pai2[i])
+    return filho
+
+
+def crossover_uniforme(populacao, probabilidade_cross, fitness_func):
+    prox_pop = []
+    for pai1 in populacao:
+        if random.random() < pc:
+            novofilho = copy.deepcopy(pai1)
+            # pai2 = populacao[randint(0, len(populacao))]
+            pai2 = roleta(populacao)
+            novofilho[0], novofilho[1] = cross_uniforme(pai1[0], pai2[0]), cross_uniforme(pai1[1], pai2[1])
+            novofilho[2] = func(bin2real(novofilho[0], lower, upper),
+                                bin2real(novofilho[1], lower, upper))  # Calcula fitness
+            prox_pop.append(novofilho)
+        else:
+            prox_pop.append(pai1)
+
+    return prox_pop
+
+
+def mutacaoindividuo(individuo, pm):
     for i in range(len(individuo)):
         if random.random() < pm:
             individuo[i] = 0 if individuo[i] == 1 else 1
@@ -129,15 +165,16 @@ def mutacaoindividuo(individuo):
 
 def mutacao(população, pm):
     for individuo in população:
-        mutacaoindividuo(individuo[0])
-        mutacaoindividuo(individuo[1])
+        mutacaoindividuo(individuo[0], pm)
+        mutacaoindividuo(individuo[1], pm)
 
 
 def seleciona(populacao, tamanho_pop):
     # nova_pop = []
+    elitismo = 10
     populacao = ordenar(populacao)
-    nova_pop = populacao[0:10]
-    for i in range(tamanho_pop):
+    nova_pop = populacao[0:elitismo]
+    for i in range(tamanho_pop - elitismo):
         nova_pop.append(roleta(populacao))
 
     # plt.pie([row[2] for row in populacao], labels=['{}, {}'.format(row[0], row[1]) for row in populacao])
