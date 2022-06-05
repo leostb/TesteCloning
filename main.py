@@ -18,13 +18,11 @@ class Cromossomo:
         self.fitness = fitness
 
 
-# TODO incluir bounds
 # TODO talvez representar o x e o y em uma única cadeia binária
 
 estatistica = {}
+fitness_medio = []
 RELATORIO_DIR = 'relatorios'
-PATH = os.path.join(RELATORIO_DIR, time.strftime("%Y%m%d-%H%M%S"))
-os.makedirs(PATH)
 
 functions = {
     gold: [-2, 2],
@@ -36,21 +34,24 @@ functions = {
 }
 
 
-def algoritmo_genetico(numero_epocas, func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower, upper,
+def algoritmo_genetico(numero_epocas, fitness_func, probabilidade_cross, probabilidade_mutacao, tamanho_pop, lower,
+                       upper,
                        nbits):
-    populacao = inicializar_população(tamanho_pop, lower, upper)
-    populacao = calcular_fitness(populacao, func, lower, upper)
+    populacao = inicializar_população(tamanho_pop, lower, upper, nbits)
+    populacao = calcular_fitness(populacao, fitness_func, lower, upper)
     populacao = ordenar(populacao)
 
     for i in range(0, numero_epocas):
         print("**** Geracao " + str(i) + "*****")
         imprimir_tabela_apenas(pop2real(populacao), "Geração " + str(i))
-        popcross = crossover(populacao, probabilidade_cross, func)  # Reprodução
-        mutacao(populacao, probabilidade_mutacao)  # TODO vai pegar os pais também, não deveria ter mutação nos pais
+        popcross = crossover(populacao, probabilidade_cross, fitness_func)  # Reprodução
+        mutacao(popcross, probabilidade_mutacao)  # TODO vai pegar os pais também, não deveria ter mutação nos pais
         # array_fitness = calcular_fitness(populacao, func)
         populacao += popcross
+        populacao = calcular_fitness(populacao, fitness_func, lower, upper)
+        populacao = ordenar(populacao)
         populacao = seleciona(populacao, tamanho_pop)  # Escolher um método tipo roleta
-        populacao = calcular_fitness(populacao, func, lower, upper)
+        calcular_fitness_medio(populacao)
     return populacao
 
 
@@ -80,8 +81,8 @@ def roleta(populacao):
 
     ponto_sorteado = random.random() * soma
     for i in range(0, len(intervalos) - 1):
-        if ponto_sorteado >= intervalos[i] and ponto_sorteado < intervalos[i+1]:
-            return populacao[i]
+        if ponto_sorteado >= intervalos[i] and ponto_sorteado < intervalos[i + 1]:
+            return copy.deepcopy(populacao[i])
 
     # contabilizar_roleta(sorteado)
     # plt.pie(list(map(abs, populacao.keys())), list(map(abs, populacao.values())), normalize=True)
@@ -108,7 +109,8 @@ def crossover(populacao, pc, func):
     for pai1 in populacao:
         if random.random() < pc:
             novofilho = copy.deepcopy(pai1)
-            pai2 = roleta(populacao)  # TODO alterar de roleta para randômico talvez
+            # pai2 = populacao[randint(0, len(populacao))]
+            pai2 = roleta(populacao)
             novofilho[0], novofilho[1] = cross(pai1[0], pai2[0]), cross(pai1[1], pai2[1])
             novofilho[2] = func(bin2real(novofilho[0], lower, upper),
                                 bin2real(novofilho[1], lower, upper))  # Calcula fitness
@@ -132,7 +134,9 @@ def mutacao(população, pm):
 
 
 def seleciona(populacao, tamanho_pop):
-    nova_pop = []
+    # nova_pop = []
+    populacao = ordenar(populacao)
+    nova_pop = populacao[0:10]
     for i in range(tamanho_pop):
         nova_pop.append(roleta(populacao))
 
@@ -158,8 +162,11 @@ def contabilizar_roleta(chave):
         estatistica[chave] += 1
 
 
-def objective(x, y):
-    return 1 / func(x, y)
+def fitness(x, y):
+    objective = func(x, y)
+    if np.isnan(objective):
+        return 0
+    return 1 / (80 + objective)
 
 
 def bin2real(xb, xmin, xmax):
@@ -228,29 +235,55 @@ def imprimir_parametros():
             print(str(k) + " = " + str(v), file=f)
 
 
+def calcular_fitness_medio(populacao):
+    # TODO talvez trocar variável global
+    soma = 0.0
+    for individuo in populacao:
+        soma += individuo[2]
+    media = soma / len(populacao)
+    fitness_medio.append(media)
+    with open(os.path.join(PATH, "progressao" + '.csv'), 'a') as f:
+        print("Fitness Médio: " + str(media) + "\n", file=f)
+
+
+def imprimir_fitness_medio():
+    plt.plot(fitness_medio)
+    plt.savefig(os.path.join(PATH + "/fitnessmedio"))
+
+
 if __name__ == '__main__':
-    isSeedOn = True
+    isTemp = True  # Salvar em pasta temporária
+    isSeedOn = False
     seed = 2
     seednp = 1
     if isSeedOn:
         random.seed(seed)
         np.random.seed(seednp)
 
+    if isTemp:
+        PATH = os.path.join(RELATORIO_DIR, "temp", time.strftime("%Y%m%d-%H%M%S"))
+        os.makedirs(PATH)
+    else:
+        PATH = os.path.join(RELATORIO_DIR, time.strftime("%Y%m%d-%H%M%S"))
+        os.makedirs(PATH)
+
     tamPop = 30
-    pc = 0.9  # Probabilidade de Crossover
-    pm = 0.1  # Probabilidade de mutação
-    Ngera = 100  # Nro de gerações
+    pc = 0.8  # Probabilidade de Crossover
+    pm = 0.01  # Probabilidade de mutação
+    Ngera = 1000  # Nro de gerações
     Nbits = 32  # Número de bits para cada variável
     Nvar = 2  # Nro de variáveis
     gera = 0  # Geração inicial
 
-    func = ackley
+    func = bump
 
     lower = functions[func][0]
     upper = functions[func][1]
 
     imprimir_parametros()
 
-    printgraph(lower, upper, 100, func)
+    # printgraph(lower, upper, 100, fitness)
+    # printgraph(lower, upper, 100, func)
 
-    pop_final = algoritmo_genetico(Ngera, objective, pc, pm, tamPop, lower, upper, Nbits)
+    pop_final = algoritmo_genetico(Ngera, fitness, pc, pm, tamPop, lower, upper, Nbits)
+    imprimir_fitness_medio()
