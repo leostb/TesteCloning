@@ -11,17 +11,11 @@ from numpy.random import randint
 from functions import ackley, dejong, gold, rastrigin, suums, printgraph, bump
 
 
-class Cromossomo:
-    def __init__(self, x, y, fitness):
-        self.x = x
-        self.y = y
-        self.fitness = fitness
-
-
 # TODO talvez representar o x e o y em uma única cadeia binária
 
 estatistica = {}
 fitness_medio = []
+fitness_top10 = []
 RELATORIO_DIR = 'relatorios'
 
 functions = {
@@ -56,7 +50,6 @@ def algoritmo_genetico(numero_epocas, fitness_func, probabilidade_cross, probabi
         # array_fitness = calcular_fitness(populacao, func)
         populacao += subpop1 + subpop2 + subpop3
         populacao = calcular_fitness(populacao, fitness_func, lower, upper)
-        populacao = ordenar(populacao)
         populacao = seleciona(populacao, tamanho_pop)  # Escolher um método tipo roleta
         calcular_fitness_medio(populacao)
     return populacao
@@ -111,16 +104,16 @@ def cross_simples(pai1, pai2):
     return filho
 
 
-def crossover_simples(populacao, pc, func):
+def crossover_simples(populacao, pc, fitness):
     prox_pop = []
     for pai1 in populacao:
         if random.random() < pc:
             novofilho = copy.deepcopy(pai1)
-            # pai2 = populacao[randint(0, len(populacao))]
-            pai2 = roleta(populacao)
+            pai2 = populacao[randint(0, len(populacao))]
+            #pai2 = roleta(populacao)
             novofilho[0], novofilho[1] = cross_simples(pai1[0], pai2[0]), cross_simples(pai1[1], pai2[1])
-            novofilho[2] = func(bin2real(novofilho[0], lower, upper),
-                                bin2real(novofilho[1], lower, upper))  # Calcula fitness
+            novofilho[2] = fitness(bin2real(novofilho[0], lower, upper),
+                                   bin2real(novofilho[1], lower, upper))  # Calcula fitness
             prox_pop.append(novofilho)
         else:
             prox_pop.append(pai1)
@@ -140,16 +133,16 @@ def cross_uniforme(pai1, pai2):
     return filho
 
 
-def crossover_uniforme(populacao, probabilidade_cross, fitness_func):
+def crossover_uniforme(populacao, pc, fitness):
     prox_pop = []
     for pai1 in populacao:
         if random.random() < pc:
             novofilho = copy.deepcopy(pai1)
-            # pai2 = populacao[randint(0, len(populacao))]
-            pai2 = roleta(populacao)
+            pai2 = populacao[randint(0, len(populacao))]
+            #pai2 = roleta(populacao)
             novofilho[0], novofilho[1] = cross_uniforme(pai1[0], pai2[0]), cross_uniforme(pai1[1], pai2[1])
-            novofilho[2] = func(bin2real(novofilho[0], lower, upper),
-                                bin2real(novofilho[1], lower, upper))  # Calcula fitness
+            novofilho[2] = fitness(bin2real(novofilho[0], lower, upper),
+                                   bin2real(novofilho[1], lower, upper))  # Calcula fitness
             prox_pop.append(novofilho)
         else:
             prox_pop.append(pai1)
@@ -157,16 +150,18 @@ def crossover_uniforme(populacao, probabilidade_cross, fitness_func):
     return prox_pop
 
 
-def mutacaoindividuo(individuo, pm):
-    for i in range(len(individuo)):
-        if random.random() < pm:
-            individuo[i] = 0 if individuo[i] == 1 else 1
+def mutacao_cadeia_binaria(individuo):
+    i = randint(0, len(individuo))
+    individuo[i] = 0 if individuo[i] == 1 else 1
 
 
 def mutacao(população, pm):
     for individuo in população:
-        mutacaoindividuo(individuo[0], pm)
-        mutacaoindividuo(individuo[1], pm)
+        if random.random() < pm:
+            if randint(0, 2) == 0:
+                mutacao_cadeia_binaria(individuo[0])
+            else:
+                mutacao_cadeia_binaria(individuo[1])
 
 
 def seleciona(populacao, tamanho_pop):
@@ -198,7 +193,6 @@ def contabilizar_roleta(chave):
     else:
         estatistica[chave] += 1
 
-@np.vectorize
 def fitness(x, y):
     objective = func(x, y)
     if np.isnan(objective):
@@ -246,6 +240,7 @@ def imprimir_tabelae2d(data):
     plt.savefig()
 
 
+
 def pop2real(pop):
     pop_convertida = []
     for ind in pop:
@@ -275,10 +270,16 @@ def imprimir_parametros():
 def calcular_fitness_medio(populacao):
     # TODO talvez trocar variável global
     soma = 0.0
+    top10 = 0.0
+    i = 0
     for individuo in populacao:
+        if i < 10:
+            top10 += individuo[2]
         soma += individuo[2]
+        i += 1
     media = soma / len(populacao)
     fitness_medio.append(media)
+    fitness_top10.append(top10/10.0)
     with open(os.path.join(PATH, "progressao" + '.csv'), 'a') as f:
         print("Fitness Médio: " + str(media) + "\n", file=f)
 
@@ -286,6 +287,8 @@ def calcular_fitness_medio(populacao):
 def imprimir_fitness_medio():
     plt.plot(fitness_medio)
     plt.savefig(os.path.join(PATH + "/fitnessmedio"))
+    plt.plot(fitness_top10)
+    plt.savefig(os.path.join(PATH + "/fitnesstop10"))
 
 
 if __name__ == '__main__':
@@ -304,23 +307,23 @@ if __name__ == '__main__':
         PATH = os.path.join(RELATORIO_DIR, time.strftime("%Y%m%d-%H%M%S"))
         os.makedirs(PATH)
 
-    tamPop = 30
+    tamPop = 100
     pc = 0.8  # Probabilidade de Crossover
-    pm = 0.01  # Probabilidade de mutação
-    Ngera = 500  # Nro de gerações
+    pm = 0.2  # Probabilidade de mutação
+    Ngera = 200  # Nro de gerações
     Nbits = 32  # Número de bits para cada variável
     Nvar = 2  # Nro de variáveis
     gera = 0  # Geração inicial
 
-    func = rastrigin
+    func = gold
 
     lower = functions[func][0]
     upper = functions[func][1]
 
     imprimir_parametros()
 
-    printgraph(lower, upper, 100, fitness)
-    printgraph(lower, upper, 100, func)
+    # printgraph(lower, upper, 100, fitness)
+    # printgraph(lower, upper, 100, func)
 
     pop_final = algoritmo_genetico(Ngera, fitness, pc, pm, tamPop, lower, upper, Nbits)
     imprimir_fitness_medio()
